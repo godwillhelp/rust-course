@@ -1,6 +1,6 @@
 # Лекция 1. Cargo, переменные и числа
 
-- Лекция: [lecture.html](lecture.html) (скачайте и откройте в браузере) или опубликованная версия https://claude.ai/artifact/EFPKEQTujWbnrT6SjU6Sgm
+- Лекция: https://godwillhelp.github.io/rust-course/lessons/01-cargo-variables-numbers/lecture.html (исходник: [lecture.html](lecture.html))
 - Книга: гл. 1, 3.1, 3.2
 - Rust 1.100.0, edition 2024
 

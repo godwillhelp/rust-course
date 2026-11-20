@@ -1,0 +1,981 @@
+<title>Rust, лекция 1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column (~68ch) with a sticky contents rail on wide screens; terminal blocks stay dark in both themes like a real console. */
+:root {
+  --paper: #f4f6f9;
+  --surface: #ffffff;
+  --ink: #141821;
+  --muted: #586274;
+  --rule: #d6dce6;
+  --accent: #2448c8;
+  --accent-soft: #e4e9fb;
+  --err: #c0262d;
+  --ok: #1d7a40;
+  --warn: #946200;
+  --term-bg: #10141d;
+  --term-fg: #dfe5ee;
+  --term-dim: #8792a6;
+  --term-err: #ff6b6b;
+  --term-warn: #f0c050;
+  --term-help: #5ad17e;
+  --term-blue: #7aa7ff;
+  --font-display: "Unbounded", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d1017; --surface: #151a24; --ink: #e6eaf1; --muted: #9aa4b6; --rule: #2a3242;
+    --accent: #8ea8ff; --accent-soft: #1c2440; --err: #ff7b7b; --ok: #5ad17e; --warn: #e8b84a;
+    --term-bg: #080a10; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d1017; --surface: #151a24; --ink: #e6eaf1; --muted: #9aa4b6; --rule: #2a3242;
+  --accent: #8ea8ff; --accent-soft: #1c2440; --err: #ff7b7b; --ok: #5ad17e; --warn: #e8b84a;
+  --term-bg: #080a10; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-body); font-size: 17px; line-height: 1.65; }
+.page { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px; max-width: 1080px; margin: 0 auto;
+  padding-block: 40px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; line-height: 1.4; }
+nav.toc ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+nav.toc a { color: var(--muted); text-decoration: none; display: grid; grid-template-columns: 26px 1fr; }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--accent); }
+nav.toc .n { font-family: var(--font-mono); font-size: 12px; padding-top: 1px; }
+.toc-title { font-family: var(--font-display); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+main { min-width: 0; max-width: 760px; }
+header.hero { border-bottom: 1px solid var(--rule); padding-bottom: 28px; margin-bottom: 8px; }
+.eyebrow { font-family: var(--font-mono); font-size: 13px; color: var(--accent); letter-spacing: .04em; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 10px 0 16px; text-wrap: balance; letter-spacing: -0.01em; }
+h2 { font-family: var(--font-display); font-weight: 500; font-size: 24px; line-height: 1.25; margin: 0 0 14px; text-wrap: balance; display: flex; gap: 14px; align-items: baseline; }
+h2 .n { font-family: var(--font-mono); font-size: 15px; color: var(--accent); font-weight: 600; }
+h3 { font-size: 18px; font-weight: 600; margin: 28px 0 8px; }
+section { padding-top: 48px; scroll-margin-top: 16px; }
+p { margin: 0 0 14px; }
+.lead { font-size: 19px; color: var(--muted); max-width: 62ch; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; font-family: var(--font-mono); font-size: 13px; }
+.meta span { border: 1px solid var(--rule); border-radius: 4px; padding: 3px 9px; color: var(--muted); background: var(--surface); }
+a { color: var(--accent); }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--accent-soft); padding: 1px 5px; border-radius: 3px; }
+pre { font-family: var(--font-mono); font-size: 14px; line-height: 1.55; margin: 0 0 16px; padding: 14px 16px; overflow-x: auto; border-radius: 6px; background: var(--term-bg); color: var(--term-fg); }
+pre code { background: none; padding: 0; font-size: inherit; color: inherit; }
+pre .c { color: var(--term-dim); }
+pre .e { color: var(--term-err); font-weight: 600; }
+pre .w { color: var(--term-warn); font-weight: 600; }
+pre .h { color: var(--term-help); font-weight: 600; }
+pre .b { color: var(--term-blue); font-weight: 600; }
+.code-label { font-family: var(--font-mono); font-size: 12px; color: var(--muted); margin: 0 0 4px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.code-label .out-ok { color: var(--ok); } .code-label .out-err { color: var(--err); } .code-label .out-panic { color: var(--warn); }
+ul, ol { padding-left: 22px; margin: 0 0 14px; }
+li { margin-bottom: 4px; }
+.table-wrap { overflow-x: auto; margin: 0 0 18px; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; font-size: 13px; color: var(--muted); letter-spacing: .02em; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 13.5px; }
+td code { white-space: nowrap; }
+.note { border-left: 3px solid var(--accent); background: var(--surface); padding: 12px 16px; margin: 0 0 18px; border-radius: 0 6px 6px 0; }
+.note.cs { border-left-color: var(--warn); }
+.note b.tag { font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; display: block; margin-bottom: 4px; color: var(--muted); }
+.note p:last-child, .note ul:last-child { margin-bottom: 0; }
+figure { margin: 8px 0 22px; }
+figure .fig-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 14px; }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 8px; }
+svg text { font-family: var(--font-mono); fill: var(--ink); }
+svg .muted { fill: var(--muted); }
+svg .box { fill: var(--surface); stroke: var(--rule); stroke-width: 1.5; }
+svg .box-accent { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+svg .line { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .byte { fill: var(--accent); }
+svg .byte-alt { fill: var(--warn); }
+svg .seam { stroke: var(--err); stroke-width: 6; fill: none; stroke-linecap: round; }
+svg .ring { stroke: var(--rule); stroke-width: 2; fill: none; }
+svg .tick { stroke: var(--muted); stroke-width: 1.2; }
+svg .err-t { fill: var(--err); }
+.anatomy { display: grid; gap: 10px; }
+.anatomy ol { counter-reset: none; }
+.marker { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); color: var(--surface); font-family: var(--font-mono); font-size: 11px; font-weight: 600; margin-right: 6px; vertical-align: 1px; }
+pre .marker { background: var(--term-blue); color: var(--term-bg); }
+.flow { display: grid; gap: 10px; margin: 0 0 18px; }
+.flow .step { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 14px; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 12px 14px; }
+.flow .when { font-family: var(--font-mono); font-size: 13px; color: var(--accent); font-weight: 600; }
+.flow .step p { margin: 0; }
+.lab { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 18px; margin: 0 0 20px; }
+.lab-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin-bottom: 14px; }
+.lab label { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.lab input, .lab select { font-family: var(--font-mono); font-size: 15px; padding: 6px 8px; border: 1px solid var(--rule); border-radius: 4px; background: var(--paper); color: var(--ink); width: 110px; }
+.lab select { width: auto; }
+.lab-out { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.lab-out div { border: 1px solid var(--rule); border-radius: 4px; padding: 8px 10px; background: var(--paper); min-width: 0; }
+.lab-out .k { font-family: var(--font-mono); font-size: 12px; color: var(--muted); display: block; }
+.lab-out .v { font-family: var(--font-mono); font-size: 15px; overflow-wrap: anywhere; }
+.lab-out .v.bad { color: var(--err); } .lab-out .v.good { color: var(--ok); }
+.lab-exact { font-size: 14px; color: var(--muted); margin-top: 10px; }
+.cards { display: grid; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px 16px; min-width: 0; }
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; font-family: var(--font-mono); font-size: 13px; color: var(--muted); }
+.card pre { margin-bottom: 10px; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+button { font-family: var(--font-body); font-size: 15px; font-weight: 500; border: 1px solid var(--accent); color: var(--accent); background: var(--surface); padding: 6px 14px; border-radius: 4px; cursor: pointer; }
+button:hover { background: var(--accent-soft); }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--surface); }
+.verdict { margin-top: 10px; font-size: 15px; }
+.verdict .res { font-weight: 600; }
+.verdict .res.right { color: var(--ok); } .verdict .res.wrong { color: var(--err); }
+.verdict pre { margin-top: 8px; font-size: 13px; }
+.quiz-q { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+.quiz-q fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.quiz-q legend { font-weight: 600; margin-bottom: 8px; padding: 0; }
+.quiz-q label { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; cursor: pointer; }
+.quiz-q .why { font-size: 14px; color: var(--muted); margin-top: 6px; }
+.quiz-q.right { border-color: var(--ok); } .quiz-q.wrong { border-color: var(--err); }
+.score { font-family: var(--font-mono); font-size: 15px; margin-left: 12px; }
+dl.gloss { display: grid; grid-template-columns: minmax(130px, max-content) minmax(0, 1fr); gap: 6px 18px; margin: 0; }
+dl.gloss dt { font-weight: 600; }
+dl.gloss dt span { display: block; font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-weight: 400; }
+dl.gloss dd { margin: 0 0 8px; }
+.task { background: var(--surface); border: 1px solid var(--rule); border-radius: 8px; padding: 18px; margin-bottom: 16px; }
+.task h3 { margin-top: 0; }
+.pts { font-family: var(--font-mono); font-size: 13px; color: var(--accent); }
+.sources li { margin-bottom: 8px; }
+.tier { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.goals { columns: 2 260px; column-gap: 28px; }
+.goals li { break-inside: avoid; }
+@media (max-width: 860px) {
+  .page { grid-template-columns: minmax(0, 1fr); gap: 0; padding-block: 24px 72px; }
+  nav.toc { position: static; margin-bottom: 8px; }
+  nav.toc ol { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  body { font-size: 16px; }
+  .flow .step { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+}
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+
+<div class="page">
+<nav class="toc" aria-label="Содержание">
+  <div class="toc-title">Содержание</div>
+  <ol>
+    <li><a href="#tools"><span class="n">1</span>Инструменты</a></li>
+    <li><a href="#cargo"><span class="n">2</span>Cargo</a></li>
+    <li><a href="#errors"><span class="n">3</span>Ошибки компилятора</a></li>
+    <li><a href="#vars"><span class="n">4</span>Переменные</a></li>
+    <li><a href="#scalars"><span class="n">5</span>Скалярные типы</a></li>
+    <li><a href="#compound"><span class="n">6</span>Кортежи и массивы</a></li>
+    <li><a href="#overflow"><span class="n">7</span>Переполнение</a></li>
+    <li><a href="#fmt"><span class="n">8</span>println!</a></li>
+    <li><a href="#predict"><span class="n">9</span>Скомпилируется?</a></li>
+    <li><a href="#glossary"><span class="n">10</span>Глоссарий</a></li>
+    <li><a href="#quiz"><span class="n">11</span>Самопроверка</a></li>
+    <li><a href="#tasks"><span class="n">12</span>Задания</a></li>
+    <li><a href="#sources"><span class="n">13</span>Источники</a></li>
+  </ol>
+</nav>
+
+<main>
+<header class="hero">
+  <div class="eyebrow">Модуль A · Фундамент · лекция 1 из 59</div>
+  <h1>Cargo, переменные и числа</h1>
+  <p class="lead">Ставим на место инструменты, учимся читать компилятор как собеседника и разбираем, как Rust хранит числа и что он делает, когда число не влезает в свой тип.</p>
+  <div class="meta"><span>Rust 1.100.0</span><span>edition 2024</span><span>≈ 3–4 часа</span><span>Книга: гл. 1, 3.1, 3.2</span></div>
+  <h3>После лекции вы сможете</h3>
+  <ul class="goals">
+    <li>объяснить, что делают rustup, rustc, cargo, clippy и rustfmt;</li>
+    <li>создать, проверить, запустить и протестировать проект через cargo;</li>
+    <li>разобрать сообщение компилятора по частям и найти объяснение по коду ошибки;</li>
+    <li>выбирать между <code>let</code>, <code>let mut</code>, <code>const</code> и затенением;</li>
+    <li>выбрать подходящий целочисленный тип и предсказать результат приведения <code>as</code>;</li>
+    <li>сказать, что произойдёт при переполнении в debug и в release, и обработать его явно.</li>
+  </ul>
+  <p>Как работать с лекцией: весь код набирайте руками в своём проекте, а перед каждым запуском записывайте предсказание. Ошибка в предсказании полезнее правильного ответа: именно она показывает, где модель в голове расходится с языком.</p>
+</header>
+
+<section id="tools">
+  <h2><span class="n">§1</span>Инструменты Rust</h2>
+  <p>Rust поставляется набором программ. Вы почти всегда работаете через одну из них, <code>cargo</code>, а она уже вызывает остальные.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Программа</th><th>Что делает</th><th>Ближайший аналог в .NET</th></tr></thead>
+    <tbody>
+      <tr><td><code>rustup</code></td><td>Ставит и обновляет компилятор, переключает версии и каналы</td><td>установщик .NET SDK</td></tr>
+      <tr><td><code>rustc</code></td><td>Компилятор: превращает исходники в исполняемый файл</td><td>Roslyn (<code>csc</code>)</td></tr>
+      <tr><td><code>cargo</code></td><td>Сборка, запуск, тесты, зависимости, публикация пакетов</td><td><code>dotnet</code> CLI + NuGet</td></tr>
+      <tr><td><code>rustfmt</code></td><td>Форматирует код по единому стилю (<code>cargo fmt</code>)</td><td><code>dotnet format</code></td></tr>
+      <tr><td><code>clippy</code></td><td>Линтер: сотни проверок на ошибки и неидиоматичный код</td><td>анализаторы Roslyn</td></tr>
+      <tr><td><code>rust-analyzer</code></td><td>Языковой сервер: подсказки, переходы, ошибки прямо в редакторе</td><td>C# Dev Kit</td></tr>
+    </tbody>
+  </table></div>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg viewBox="0 0 700 250" width="700" role="img" aria-label="rustup управляет тулчейнами; cargo вызывает rustc и кладёт программу в target/debug">
+      <rect class="box-accent" x="10" y="20" width="110" height="44" rx="6"/>
+      <text x="65" y="47" text-anchor="middle" font-size="15" font-weight="600">rustup</text>
+      <path class="line" d="M120 42 H180" marker-end="url(#arr)"/>
+      <text x="150" y="34" text-anchor="middle" font-size="11" class="muted">ставит</text>
+      <rect class="box" x="184" y="10" width="506" height="64" rx="6"/>
+      <text x="198" y="30" font-size="12" class="muted">toolchain stable 1.100.0</text>
+      <g font-size="13">
+        <rect class="box-accent" x="198" y="38" width="64" height="26" rx="4"/><text x="230" y="56" text-anchor="middle">rustc</text>
+        <rect class="box-accent" x="270" y="38" width="64" height="26" rx="4"/><text x="302" y="56" text-anchor="middle">cargo</text>
+        <rect class="box-accent" x="342" y="38" width="52" height="26" rx="4"/><text x="368" y="56" text-anchor="middle">std</text>
+        <rect class="box-accent" x="402" y="38" width="70" height="26" rx="4"/><text x="437" y="56" text-anchor="middle">clippy</text>
+        <rect class="box-accent" x="480" y="38" width="80" height="26" rx="4"/><text x="520" y="56" text-anchor="middle">rustfmt</text>
+      </g>
+      <text x="580" y="56" font-size="11" class="muted">+ beta, nightly</text>
+      <rect class="box" x="10" y="150" width="140" height="64" rx="6"/>
+      <text x="80" y="176" text-anchor="middle" font-size="13">Cargo.toml</text>
+      <text x="80" y="198" text-anchor="middle" font-size="13">src/main.rs</text>
+      <path class="line" d="M150 182 H210" marker-end="url(#arr)"/>
+      <rect class="box-accent" x="214" y="160" width="100" height="44" rx="6"/>
+      <text x="264" y="187" text-anchor="middle" font-size="14" font-weight="600">cargo</text>
+      <path class="line" d="M314 182 H374" marker-end="url(#arr)"/>
+      <text x="344" y="174" text-anchor="middle" font-size="11" class="muted">вызывает</text>
+      <rect class="box-accent" x="378" y="160" width="100" height="44" rx="6"/>
+      <text x="428" y="187" text-anchor="middle" font-size="14" font-weight="600">rustc</text>
+      <path class="line" d="M478 182 H538" marker-end="url(#arr)"/>
+      <rect class="box" x="542" y="150" width="148" height="64" rx="6"/>
+      <text x="616" y="176" text-anchor="middle" font-size="13">target/debug/</text>
+      <text x="616" y="198" text-anchor="middle" font-size="13">hello.exe</text>
+      <path class="line" d="M264 160 V100 H302 V68" stroke-dasharray="4 4"/>
+      <text x="270" y="118" font-size="11" class="muted">это та же cargo из тулчейна</text>
+      <defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--muted)"/></marker></defs>
+    </svg>
+    </div>
+    <figcaption>rustup держит на диске один или несколько тулчейнов. Команда <code>cargo build</code> читает Cargo.toml, вызывает rustc и складывает результат в target/.</figcaption>
+  </figure>
+
+  <h3>Каналы и релизы</h3>
+  <p>У Rust три канала. <b>stable</b> выходит раз в шесть недель, сейчас это 1.100.0. <b>beta</b> станет следующим stable. <b>nightly</b> собирается каждую ночь и содержит нестабильные возможности. В курсе мы используем только stable. Обновление: <code>rustup update</code>, текущее состояние: <code>rustup show</code>.</p>
+  <h3>Редакции</h3>
+  <p>Редакция (edition) и версия компилятора — разные вещи. Версия меняется каждые шесть недель. Редакция меняется раз в несколько лет (2015, 2018, 2021, 2024) и позволяет вводить несовместимые изменения синтаксиса, не ломая старый код: компилятор 1.100 собирает пакеты любой редакции, и пакеты разных редакций свободно используют друг друга. Редакция пакета записана в его Cargo.toml. Мы пишем на <b>2024</b>.</p>
+</section>
+
+<section id="cargo">
+  <h2><span class="n">§2</span>Cargo: проект и сборка</h2>
+  <p>Команда <code>cargo new hello</code> создаёт папку проекта, и если вы не находитесь внутри другого git-репозитория, ещё и инициализирует git:</p>
+<pre data-run="skip"><code>hello/
+├── .gitignore      <span class="c"># игнорирует /target</span>
+├── Cargo.toml      <span class="c"># манифест: имя, версия, редакция, зависимости</span>
+└── src/
+    └── main.rs     <span class="c"># точка входа бинарного пакета</span></code></pre>
+  <div class="code-label"><span>Cargo.toml</span></div>
+<pre data-run="skip"><code>[package]
+name = "hello"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]</code></pre>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">выводит: Hello, world!</span></div>
+<pre data-run="ok"><code>fn main() {
+    println!("Hello, world!");
+}</code></pre>
+  <p><code>fn main</code> — функция, с которой начинается программа. <code>println!</code> с восклицательным знаком — это макрос, а не функция: он разворачивается в код на этапе компиляции и умеет проверять строку формата. Макросы разберём в лекции 28, пока достаточно знать, что <code>!</code> означает макрос.</p>
+
+  <h3>Команды, которые нужны каждый день</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Команда</th><th>Что делает</th></tr></thead>
+    <tbody>
+      <tr><td><code>cargo check</code></td><td>Проверяет, что код компилируется, но не создаёт exe. Самая быстрая обратная связь.</td></tr>
+      <tr><td><code>cargo build</code></td><td>Собирает в <code>target/debug/</code></td></tr>
+      <tr><td><code>cargo run</code></td><td>Собирает (если нужно) и запускает</td></tr>
+      <tr><td><code>cargo test</code></td><td>Собирает и запускает тесты</td></tr>
+      <tr><td><code>cargo fmt</code></td><td>Форматирует весь код</td></tr>
+      <tr><td><code>cargo clippy</code></td><td>Запускает линтер</td></tr>
+      <tr><td><code>cargo build --release</code></td><td>Оптимизированная сборка в <code>target/release/</code></td></tr>
+      <tr><td><code>cargo doc --open</code></td><td>Документация проекта и всех зависимостей в браузере</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Профили dev и release</h3>
+  <p>Обычная сборка использует профиль <code>dev</code>, сборка с <code>--release</code> — профиль <code>release</code>. Это не просто «с оптимизацией и без»: профили меняют поведение программы. Ниже выдержка из настроек по умолчанию (Cargo Book, «Profiles»):</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Настройка</th><th>dev</th><th>release</th><th>Что значит</th></tr></thead>
+    <tbody>
+      <tr><td><code>opt-level</code></td><td class="num">0</td><td class="num">3</td><td>уровень оптимизации</td></tr>
+      <tr><td><code>debug</code></td><td class="num">true</td><td class="num">false</td><td>отладочная информация</td></tr>
+      <tr><td><code>debug-assertions</code></td><td class="num">true</td><td class="num">false</td><td>работают ли <code>debug_assert!</code></td></tr>
+      <tr><td><code>overflow-checks</code></td><td class="num">true</td><td class="num">false</td><td>паника при переполнении целых, см. §7</td></tr>
+      <tr><td><code>incremental</code></td><td class="num">true</td><td class="num">false</td><td>пересобирать только изменённое</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Cargo.lock и target/</h3>
+  <p><code>Cargo.lock</code> фиксирует точные версии всех зависимостей. Его создаёт cargo, руками не правят, в git коммитят. Папка <code>target/</code> — результат сборки, она большая и всегда в <code>.gitignore</code>.</p>
+  <div class="note"><b class="tag">В нашем репозитории</b>
+    <p>Репозиторий курса — это workspace: один Cargo.toml в корне объединяет все задания всех лекций. Команды запускаются из корня, а пакет выбирается флагом <code>-p</code>: <code>cargo test -p l01-task1</code>, <code>cargo run -p l01-task2</code>.</p></div>
+</section>
+
+<section id="errors">
+  <h2><span class="n">§3</span>Как читать ошибки компилятора</h2>
+  <p>В Rust компилятор останавливает много ошибок, которые в других языках всплывают только при запуске. Поэтому вы будете много читать его сообщения. Они написаны для людей и почти всегда подсказывают исправление. Разберём одно сообщение по частям.</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-err">ошибка компиляции</span></div>
+<pre data-run="err"><code>fn main() {
+    let hp = 100;
+    println!("HP: {hp}");
+    hp = 90;
+    println!("HP: {hp}");
+}</code></pre>
+<pre data-run="skip"><code><span class="marker">1</span><span class="e">error[E0384]</span>: cannot assign twice to immutable variable `hp`
+<span class="marker">2</span> <span class="b">--&gt;</span> src/main.rs:4:5
+  <span class="b">|</span>
+<span class="b">2</span> <span class="b">|</span>     let hp = 100;
+  <span class="b">|</span>         <span class="b">--</span> <span class="b">first assignment to `hp`</span>   <span class="marker">3</span>
+<span class="b">3</span> <span class="b">|</span>     println!("HP: {hp}");
+<span class="b">4</span> <span class="b">|</span>     hp = 90;
+  <span class="b">|</span>     <span class="e">^^^^^^^ cannot assign twice to immutable variable</span>   <span class="marker">4</span>
+  <span class="b">|</span>
+<span class="marker">5</span><span class="h">help</span>: consider making this binding mutable
+  <span class="b">|</span>
+<span class="b">2</span> <span class="b">|</span>     let <span class="h">mut</span> hp = 100;
+  <span class="b">|</span>         <span class="h">+++</span></code></pre>
+  <ol class="anatomy">
+    <li><b>Уровень и код.</b> <code>error</code> останавливает сборку, <code>warning</code> — нет. Код <code>E0384</code> можно расшифровать командой <code>rustc --explain E0384</code> или в <a href="https://doc.rust-lang.org/error_codes/error-index.html">индексе ошибок</a>.</li>
+    <li><b>Место:</b> файл, строка 4, столбец 5. В Zed по нему можно кликнуть.</li>
+    <li><b>Вторичная метка</b> (<code>---</code>, синим) показывает связанное место: где переменная получила первое значение.</li>
+    <li><b>Основная метка</b> (<code>^^^</code>, красным) показывает само нарушение.</li>
+    <li><b>help</b> предлагает исправление в виде патча: <code>+++</code> под строкой показывает, что добавить.</li>
+  </ol>
+  <h3>Порядок чтения</h3>
+  <ol>
+    <li>Исправляйте <b>первую</b> ошибку. Остальные часто являются её следствием и исчезнут сами.</li>
+    <li>Читайте сообщение целиком, включая метки и <code>note</code>. Ответ обычно уже там.</li>
+    <li>Не применяйте <code>help</code> вслепую: это догадка компилятора о вашем намерении. Сначала поймите, почему он так предложил.</li>
+    <li>Если есть код E…, прочитайте <code>rustc --explain</code>: там пример ошибки и её исправления.</li>
+  </ol>
+  <h3>Ошибки без кода: линты</h3>
+  <p>Некоторые ошибки приходят без кода E…. Это <b>линты</b>, проверки с настраиваемым уровнем: <code>allow</code> (молчать), <code>warn</code>, <code>deny</code> (ошибка), <code>forbid</code> (ошибка, которую нельзя понизить). Часть линтов уже стоит на <code>deny</code>, и строка <code>note</code> это сообщает:</p>
+<pre data-run="skip"><code><span class="e">error</span>: literal out of range for `u8`
+ <span class="b">--&gt;</span> src/main.rs:2:21
+  <span class="b">|</span>
+<span class="b">2</span> <span class="b">|</span>     let level: u8 = 256;
+  <span class="b">|</span>                     <span class="e">^^^</span>
+  <span class="b">|</span>
+  <span class="b">=</span> <span class="b">note</span>: the literal `256` does not fit into the type `u8` whose range is `0..=255`
+  <span class="b">=</span> <span class="b">note</span>: `#[deny(overflowing_literals)]` on by default</code></pre>
+  <p>Предупреждения тоже стоит читать. Неиспользуемая переменная почти всегда означает опечатку или забытый код. Если переменная не нужна намеренно, начните её имя с подчёркивания: <code>_x</code>.</p>
+  <div class="note"><b class="tag">Бестиарий</b><p>В корне репозитория лежит <code>bestiary.md</code>. Каждая новая для вас ошибка компилятора, которую вы записали и объяснили своими словами, приносит +5 XP.</p></div>
+</section>
+
+<section id="vars">
+  <h2><span class="n">§4</span>Переменные</h2>
+  <p>Переменная объявляется через <code>let</code> и по умолчанию <b>неизменяема</b>. Так проще читать код: если нет <code>mut</code>, значение не меняется, и это не надо проверять глазами. В многопоточном коде (лекция 25) это свойство становится ещё важнее.</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">Золото: 0, HP: 100 / HP после удара: 90</span></div>
+<pre data-run="ok"><code>fn main() {
+    let gold: u32 = 0;
+    let mut hp = 100;
+    println!("Золото: {gold}, HP: {hp}");
+    hp = 90;
+    println!("HP после удара: {hp}");
+}</code></pre>
+  <p><code>let gold: u32</code> — явная аннотация типа. В строке <code>let mut hp = 100</code> тип выведен компилятором. Вывод типов работает по всей функции, но если подсказок нет, целое число получает тип <code>i32</code>.</p>
+  <p>Переменную можно объявить без значения, но читать её до присваивания нельзя. Rust проверяет это при компиляции, а не надеется на значение по умолчанию:</p>
+<pre data-run="skip"><code><span class="e">error[E0381]</span>: used binding `gold` isn't initialized</code></pre>
+
+  <h3>Константы</h3>
+<pre data-run="ok"><code>const MAX_HP: u32 = 100;
+const SECONDS_IN_DAY: u32 = 24 * 60 * 60;
+
+fn main() {
+    println!("{MAX_HP} {SECONDS_IN_DAY}");
+}</code></pre>
+  <ul>
+    <li>тип указывается <b>всегда</b>, вывода нет (<code>const MAX_HP = 100;</code> — ошибка «missing type for `const` item»);</li>
+    <li>значение вычисляется при компиляции, поэтому в нём допустимы только константные выражения;</li>
+    <li>имя пишется <code>SCREAMING_SNAKE_CASE</code>;</li>
+    <li>константу можно объявить в любой области, в том числе вне функций.</li>
+  </ul>
+
+  <h3>Затенение</h3>
+  <p>Повторный <code>let</code> с тем же именем создаёт <b>новую</b> переменную, которая закрывает старую до конца блока.</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">Внутри блока x = 12 / Снаружи x = 6</span></div>
+<pre data-run="ok"><code>fn main() {
+    let x = 5;
+    let x = x + 1;
+    {
+        let x = x * 2;
+        println!("Внутри блока x = {x}");
+    }
+    println!("Снаружи x = {x}");
+}</code></pre>
+  <p>Чем затенение отличается от <code>mut</code>:</p>
+  <ul>
+    <li>новая переменная может иметь <b>другой тип</b>: <code>let spaces = "   "; let spaces = spaces.len();</code> компилируется, а с <code>let mut</code> то же самое даёт E0308 (несовпадение типов);</li>
+    <li>после затенения переменная снова неизменяема, если её не объявили через <code>mut</code>;</li>
+    <li>затенение во внутреннем блоке заканчивается вместе с блоком.</li>
+  </ul>
+  <div class="note cs"><b class="tag">Если вы пришли из C#</b>
+    <p>В C# локальная переменная изменяема по умолчанию, а повторное объявление имени в той же области запрещено. В Rust наоборот: изменяемость надо запросить, а повторное объявление разрешено. <code>const</code> похож на C#-овский <code>const</code>, но тип в Rust обязателен.</p></div>
+  <p>Имена переменных и функций пишутся <code>snake_case</code>. Это не только соглашение: на <code>myVar</code> компилятор выдаст предупреждение <code>non_snake_case</code>.</p>
+</section>
+
+<section id="scalars">
+  <h2><span class="n">§5</span>Скалярные типы</h2>
+  <p>Скалярный тип хранит одно значение. В Rust их четыре вида: целые числа, числа с плавающей точкой, <code>bool</code> и <code>char</code>.</p>
+  <h3>Целые числа</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Бит</th><th>Знаковый</th><th class="num">Минимум</th><th class="num">Максимум</th><th>Беззнаковый</th><th class="num">Максимум</th></tr></thead>
+    <tbody>
+      <tr><td class="num">8</td><td><code>i8</code></td><td class="num">−128</td><td class="num">127</td><td><code>u8</code></td><td class="num">255</td></tr>
+      <tr><td class="num">16</td><td><code>i16</code></td><td class="num">−32 768</td><td class="num">32 767</td><td><code>u16</code></td><td class="num">65 535</td></tr>
+      <tr><td class="num">32</td><td><code>i32</code></td><td class="num">−2 147 483 648</td><td class="num">2 147 483 647</td><td><code>u32</code></td><td class="num">4 294 967 295</td></tr>
+      <tr><td class="num">64</td><td><code>i64</code></td><td class="num">≈ −9,2·10¹⁸</td><td class="num">≈ 9,2·10¹⁸</td><td><code>u64</code></td><td class="num">≈ 1,8·10¹⁹</td></tr>
+      <tr><td class="num">128</td><td><code>i128</code></td><td class="num">≈ −1,7·10³⁸</td><td class="num">≈ 1,7·10³⁸</td><td><code>u128</code></td><td class="num">≈ 3,4·10³⁸</td></tr>
+      <tr><td>как указатель</td><td><code>isize</code></td><td colspan="2">на 64-битной системе как <code>i64</code></td><td><code>usize</code></td><td>как <code>u64</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>Знаковый тип с n битами хранит значения от −2<sup>n−1</sup> до 2<sup>n−1</sup>−1, беззнаковый от 0 до 2<sup>n</sup>−1. Точные границы есть в константах: <code>u8::MAX</code>, <code>i32::MIN</code>. <code>usize</code> используется для индексов и размеров: длина массива имеет тип <code>usize</code>.</p>
+  <p>Какой тип выбирать: если нет причины для другого, берите <code>i32</code>. Для индексов и длин — <code>usize</code>. Если значение по смыслу не бывает отрицательным и у него известный предел (здоровье, уровень, количество в стаке), подойдёт беззнаковый тип нужного размера.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg id="sizes" viewBox="0 0 600 330" width="600" role="img" aria-label="Размеры скалярных типов в байтах"></svg>
+    </div>
+    <figcaption>Размеры скалярных типов, один квадрат = 1 байт = 8 бит. Значения взяты из <code>size_of::&lt;T&gt;()</code> на 64-битной системе.</figcaption>
+  </figure>
+
+  <h3>Литералы</h3>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">1000000 255 493 240 65 57 2.5 0.1</span></div>
+<pre data-run="ok"><code>fn main() {
+    let million = 1_000_000;
+    let mask = 0xff;
+    let perms = 0o755;
+    let flags = 0b1111_0000;
+    let letter = b'A';
+    let small = 57u8;
+    let ratio = 2.5;
+    let precise: f32 = 0.1;
+    println!("{million} {mask} {perms} {flags} {letter} {small} {ratio} {precise}");
+}</code></pre>
+  <ul>
+    <li><code>_</code> разделяет разряды и ни на что не влияет;</li>
+    <li><code>0x</code>, <code>0o</code>, <code>0b</code> — шестнадцатеричная, восьмеричная и двоичная запись;</li>
+    <li><code>b'A'</code> — байт-литерал, тип <code>u8</code>, только для ASCII;</li>
+    <li>суффикс задаёт тип: <code>57u8</code>, <code>1_000i64</code>, <code>2.5f32</code>;</li>
+    <li>без подсказок целый литерал получает <code>i32</code>, дробный — <code>f64</code>.</li>
+  </ul>
+
+  <h3>Числа с плавающей точкой</h3>
+  <p><code>f32</code> и <code>f64</code> — числа стандарта IEEE 754 одинарной и двойной точности. По умолчанию берите <code>f64</code>: на современных процессорах он почти не медленнее, а точнее. Дроби вроде 0,1 в двоичной системе не представимы точно, поэтому:</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">0.30000000000000004 / false / true inf</span></div>
+<pre data-run="ok"><code>fn main() {
+    let sum = 0.1 + 0.2;
+    println!("{sum}");
+    println!("{}", sum == 0.3);
+    let nan = 0.0_f64 / 0.0;
+    println!("{} {}", nan.is_nan(), 1.0 / 0.0);
+}</code></pre>
+  <p>Деление дробного на ноль не вызывает панику: результат — бесконечность (<code>inf</code>) или NaN («не число»). NaN не равен ничему, даже самому себе, поэтому проверяют его методом <code>is_nan()</code>. Запись <code>x == f64::NAN</code> всегда ложна, и компилятор предупредит об этом линтом <code>invalid_nan_comparisons</code>.</p>
+
+  <h3>bool и char</h3>
+  <p><code>bool</code> занимает 1 байт и принимает значения <code>true</code> и <code>false</code>. <code>char</code> занимает <b>4 байта</b> и хранит одно скалярное значение Юникода: любой символ от латиницы до эмодзи. Пишется в одинарных кавычках, строки — в двойных.</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">122 1103 129408 / 4</span></div>
+<pre data-run="ok"><code>fn main() {
+    let latin = 'z';
+    let cyrillic = 'я';
+    let crab = '🦀';
+    println!("{} {} {}", latin as u32, cyrillic as u32, crab as u32);
+    println!("{}", size_of::&lt;char&gt;());
+}</code></pre>
+  <div class="note cs"><b class="tag">Если вы пришли из C#</b><p>В C# <code>char</code> — это 2 байта, одна кодовая единица UTF-16, и 🦀 в него не помещается. В Rust <code>char</code> всегда вмещает целый символ. Строки при этом хранятся в UTF-8, а не как массив <code>char</code>; это тема лекции 5.</p></div>
+
+  <h3>Арифметика</h3>
+  <p>Операции <code>+ - * / %</code> работают только с <b>одинаковыми</b> типами. Неявных преобразований чисел в Rust нет вообще, даже расширяющих:</p>
+<pre data-run="skip"><code>let a: i32 = 5;
+let b: i64 = 10;
+let c = a + b;
+<span class="e">error[E0308]</span>: mismatched types
+  <span class="e">^ expected `i32`, found `i64`</span></code></pre>
+  <p>То же касается смеси целых и дробных: <code>2.0 * 3</code> не скомпилируется (E0277, «cannot multiply `{float}` by `{integer}`»). Пишите <code>2.0 * 3.0</code>.</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">3 -3 / 1 -1 / 3.5</span></div>
+<pre data-run="ok"><code>fn main() {
+    println!("{} {}", 7 / 2, -7 / 2);
+    println!("{} {}", 7 % 2, -7 % 2);
+    println!("{}", 7.0 / 2.0);
+}</code></pre>
+  <p>Целочисленное деление отбрасывает дробную часть, то есть округляет <b>к нулю</b>: −7 / 2 = −3, а не −4. Остаток имеет знак делимого: −7 % 2 = −1. Деление целого на ноль — паника в любом профиле.</p>
+
+  <h3>Приведение типов</h3>
+  <p>Раз неявных преобразований нет, их пишут явно. Есть два основных способа.</p>
+  <p><b><code>From</code></b> — преобразование без потерь. Оно существует только там, где любое значение исходного типа помещается в целевой: <code>u32::from(hp)</code> для <code>hp: u16</code>, <code>i64::from(x)</code> для <code>x: i32</code>, <code>f64::from(n)</code> для <code>n: u32</code>. Если потеря возможна, такой функции просто нет, и код не скомпилируется.</p>
+  <p><b><code>as</code></b> — приведение, которое всегда компилируется и никогда не паникует, но может молча изменить значение:</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">44 255 -56 3 0 255 0 6000000</span></div>
+<pre data-run="ok"><code>fn main() {
+    println!("{}", 300_i32 as u8);
+    println!("{}", -1_i32 as u8);
+    println!("{}", 200_u8 as i8);
+    println!("{}", 3.9_f64 as u8);
+    println!("{}", -5.0_f64 as u8);
+    println!("{}", 300.0_f64 as u8);
+    println!("{}", f64::NAN as i32);
+    let hp: u16 = 60_000;
+    let wide = u32::from(hp) * 100;
+    println!("{wide}");
+}</code></pre>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Приведение</th><th>Правило</th><th class="num">Пример</th></tr></thead>
+    <tbody>
+      <tr><td>целое → более узкое целое</td><td>отбрасываются старшие биты</td><td class="num">300 → 44</td></tr>
+      <tr><td>знаковое ↔ беззнаковое того же размера</td><td>биты те же, читаются по-другому (§7)</td><td class="num">−1 → 255, 200 → −56</td></tr>
+      <tr><td>дробное → целое</td><td>дробная часть отбрасывается, выход за границы насыщается</td><td class="num">3,9 → 3, −5,0 → 0, 300,0 → 255</td></tr>
+      <tr><td>NaN → целое</td><td>получается 0</td><td class="num">NaN → 0</td></tr>
+      <tr><td><code>char</code> → <code>u32</code></td><td>номер символа в Юникоде</td><td class="num">'я' → 1103</td></tr>
+      <tr><td><code>char</code> → <code>u8</code></td><td>номер символа, обрезанный до 8 бит</td><td class="num">'я' → 79</td></tr>
+    </tbody>
+  </table></div>
+  <p>Правило для курса: расширяйте через <code>From</code>, а <code>as</code> для сужения используйте, только когда можете доказать, что значение помещается. Для сужения с проверкой есть <code>TryFrom</code>: <code>u8::try_from(300)</code> вернёт ошибку вместо 44. Его разберём вместе с обработкой ошибок в лекции 10.</p>
+</section>
+
+<section id="compound">
+  <h2><span class="n">§6</span>Кортежи и массивы</h2>
+  <p>Коротко о двух составных типах, которые понадобятся уже в следующей лекции. Оба имеют фиксированный размер, известный при компиляции.</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">Ария: уровень 7, точность 0.85 / 7 / 12 5 100</span></div>
+<pre data-run="ok"><code>fn main() {
+    let hero: (&amp;str, u32, f64) = ("Ария", 7, 0.85);
+    let (name, level, accuracy) = hero;
+    println!("{name}: уровень {level}, точность {accuracy}");
+    println!("{}", hero.1);
+
+    let damage = [12, 7, 30, 4, 18];
+    let zeros = [0u8; 100];
+    println!("{} {} {}", damage[0], damage.len(), zeros.len());
+}</code></pre>
+  <ul>
+    <li><b>Кортеж</b> собирает значения разных типов. Поля читаются по номеру (<code>hero.1</code>) или разбираются шаблоном (<code>let (name, level, accuracy) = hero</code>). Пустой кортеж <code>()</code> называется unit и означает «нет значения»: его возвращает функция без <code>-&gt;</code>.</li>
+    <li><b>Массив</b> <code>[T; N]</code> хранит N значений одного типа. <code>[0u8; 100]</code> — сто нулей. Длина входит в тип: <code>[i32; 5]</code> и <code>[i32; 6]</code> — разные типы.</li>
+    <li><code>&amp;str</code> в кортеже — строковый литерал. Строки подробно разберём в лекции 5.</li>
+  </ul>
+  <p>Индекс за пределами массива — паника во время выполнения. Если компилятор видит выход за границу заранее, как в <code>let a = [1, 2, 3]; a[5]</code>, он остановит сборку ошибкой «this operation will panic at runtime» (линт <code>unconditional_panic</code>). Для изменяемых списков есть <code>Vec</code>, это лекция 8.</p>
+</section>
+
+<section id="overflow">
+  <h2><span class="n">§7</span>Переполнение</h2>
+  <p>В <code>u8</code> помещаются числа от 0 до 255. Что будет, если к 255 прибавить 1? Ответ зависит от того, <b>когда</b> переполнение обнаружено.</p>
+  <div class="flow">
+    <div class="step"><div class="when">компиляция</div><p>Литерал не помещается в тип: <code>let x: u8 = 256;</code> → ошибка, линт <code>overflowing_literals</code>.</p></div>
+    <div class="step"><div class="when">компиляция</div><p>Компилятор сам может вычислить результат: <code>let x: u8 = 255; let y = x + 1;</code> → ошибка «this arithmetic operation will overflow», линт <code>arithmetic_overflow</code>.</p></div>
+    <div class="step"><div class="when">запуск, dev</div><p>Значение стало известно только при работе программы → <b>паника</b> «attempt to add with overflow». Включено <code>overflow-checks</code>.</p></div>
+    <div class="step"><div class="when">запуск, release</div><p>Проверка выключена → результат <b>заворачивается</b> по модулю 2<sup>n</sup>: 255 + 1 = 0. Это определённое поведение, а не неопределённое, как переполнение знаковых в C и C++.</p></div>
+  </div>
+  <p>Чтобы увидеть поведение во время выполнения, значение надо спрятать от компилятора. Для этого есть <code>std::hint::black_box</code>: функция возвращает аргумент как есть, но компилятор не может заглянуть внутрь и вычислить результат заранее.</p>
+  <div class="code-label"><span>src/main.rs</span><span><span class="out-panic">cargo run: паника</span> · <span class="out-ok">cargo run --release: 0</span></span></div>
+<pre data-run="panic"><code>use std::hint::black_box;
+
+fn main() {
+    let x: u8 = black_box(255);
+    let y = x + 1;
+    println!("{y}");
+}</code></pre>
+<pre data-run="skip"><code>thread 'main' panicked at src/main.rs:5:13:
+<span class="e">attempt to add with overflow</span></code></pre>
+  <p>Две операции паникуют в <b>любом</b> профиле, независимо от <code>overflow-checks</code>: деление целого на ноль («attempt to divide by zero») и <code>i32::MIN / -1</code> («attempt to divide with overflow»): результат 2 147 483 648 в <code>i32</code> не помещается.</p>
+
+  <h3>Дополнительный код</h3>
+  <p>Знаковые целые хранятся в дополнительном коде (two's complement). Биты у <code>u8</code> и <code>i8</code> одни и те же, разное только их прочтение: если старший бит равен 1, число в <code>i8</code> считается отрицательным, и из него вычитается 256.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Биты</th><th class="num">как u8</th><th class="num">как i8</th></tr></thead>
+    <tbody>
+      <tr><td class="num">0000 0000</td><td class="num">0</td><td class="num">0</td></tr>
+      <tr><td class="num">0000 0001</td><td class="num">1</td><td class="num">1</td></tr>
+      <tr><td class="num">0111 1111</td><td class="num">127</td><td class="num">127</td></tr>
+      <tr><td class="num">1000 0000</td><td class="num">128</td><td class="num">−128</td></tr>
+      <tr><td class="num">1100 1000</td><td class="num">200</td><td class="num">−56</td></tr>
+      <tr><td class="num">1111 1111</td><td class="num">255</td><td class="num">−1</td></tr>
+    </tbody>
+  </table></div>
+  <figure>
+    <div class="fig-scroll" style="display:flex;justify-content:center">
+    <svg id="wheel" viewBox="0 0 400 400" width="400" role="img" aria-label="Кольцо 256 значений байта: снаружи прочтение как u8, внутри как i8"></svg>
+    </div>
+    <figcaption>256 значений одного байта по кругу. Снаружи прочтение как <code>u8</code>, внутри как <code>i8</code>. Красные швы — места переполнения: у <code>u8</code> наверху (255 → 0), у <code>i8</code> внизу (127 → −128). Заворачивание — это шаг через шов.</figcaption>
+  </figure>
+
+  <h3>Переполнение по намерению</h3>
+  <p>Полагаться на поведение release нельзя: в debug тот же код паникует. Если переполнение возможно, выберите поведение явно. У каждого целого типа есть четыре семейства методов:</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">44 / None / Some(250) / 255 / (44, true)</span></div>
+<pre data-run="ok"><code>use std::hint::black_box;
+
+fn main() {
+    let x: u8 = black_box(200);
+    println!("{}", x.wrapping_add(100));
+    println!("{:?}", x.checked_add(100));
+    println!("{:?}", x.checked_add(50));
+    println!("{}", x.saturating_add(100));
+    println!("{:?}", x.overflowing_add(100));
+}</code></pre>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Семейство</th><th>Результат</th><th class="num">200u8 + 100</th><th>Где в игре</th></tr></thead>
+    <tbody>
+      <tr><td><code>wrapping_*</code></td><td>заворачивает по модулю 2<sup>n</sup></td><td class="num">44</td><td>счётчик тиков, хеши</td></tr>
+      <tr><td><code>checked_*</code></td><td><code>Some(x)</code> или <code>None</code> при переполнении</td><td class="num">None</td><td>покупка: хватает ли денег</td></tr>
+      <tr><td><code>saturating_*</code></td><td>упирается в MIN или MAX</td><td class="num">255</td><td>здоровье, кошелёк с лимитом</td></tr>
+      <tr><td><code>overflowing_*</code></td><td>кортеж (завёрнутое значение, был ли перенос)</td><td class="num">(44, true)</td><td>длинная арифметика</td></tr>
+    </tbody>
+  </table></div>
+  <p>Методы есть для <code>add</code>, <code>sub</code>, <code>mul</code> и других операций. <code>Option</code> с вариантами <code>Some</code> и <code>None</code> подробно разберём в лекции 7; пока достаточно того, что <code>{:?}</code> его печатает, а <code>assert_eq!</code> умеет сравнивать.</p>
+<pre data-run="ok"><code>fn main() {
+    let hp: u16 = 20;
+    let hp = hp.saturating_sub(35);
+    let tick: u8 = 255;
+    let tick = tick.wrapping_add(1);
+    let gold: u32 = 50;
+    let after_buy = gold.checked_sub(80);
+    println!("{hp} {tick} {after_buy:?}");
+}</code></pre>
+  <div class="note cs"><b class="tag">Если вы пришли из C#</b><p>В C# по умолчанию действует <code>unchecked</code>: <code>int.MaxValue + 1</code> молча становится <code>int.MinValue</code> и в Debug, и в Release, если не включить <code>CheckForOverflowUnderflow</code> или не написать <code>checked</code>. Rust в debug ловит переполнение всегда, поэтому ошибки находятся ещё при разработке.</p></div>
+
+  <h3>Лаборатория</h3>
+  <p>Выберите тип и числа и посмотрите, что дадут разные способы. Сначала предскажите, потом смотрите.</p>
+  <div class="lab">
+    <div class="lab-controls">
+      <label for="lab-type">Тип<select id="lab-type"><option value="u8">u8</option><option value="i8">i8</option><option value="u16">u16</option><option value="i16">i16</option></select></label>
+      <label for="lab-a">a<input id="lab-a" type="number" value="200"></label>
+      <label for="lab-op">Операция<select id="lab-op"><option value="add">a + b</option><option value="sub">a - b</option><option value="mul">a * b</option></select></label>
+      <label for="lab-b">b<input id="lab-b" type="number" value="100"></label>
+    </div>
+    <div class="lab-out" id="lab-out" aria-live="polite"></div>
+    <div class="lab-exact" id="lab-exact"></div>
+  </div>
+</section>
+
+<section id="fmt">
+  <h2><span class="n">§8</span>println! и форматирование</h2>
+  <p>Для второго задания понадобится печатать ровные таблицы. Строка формата <code>println!</code> проверяется при компиляции: лишний или недостающий аргумент — ошибка сборки.</p>
+  <div class="code-label"><span>src/main.rs</span><span class="out-ok">вывод в таблице ниже</span></div>
+<pre data-run="ok"><code>fn main() {
+    let name = "Гоблин";
+    let hp = 30;
+    println!("{name}: {hp} HP");
+    println!("[{:&gt;6}] [{:&lt;6}] [{:^6}]", hp, hp, hp);
+    println!("[{:08b}] [{:#x}] [{:.2}]", 5u8, 255, 3.14159);
+    println!("{:?} {}", (1, 2.5), u8::MAX);
+    println!("{hp:&gt;5}|");
+}</code></pre>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Запись</th><th>Смысл</th><th>Вывод</th></tr></thead>
+    <tbody>
+      <tr><td><code>{}</code></td><td>Display: вид для человека</td><td><code>30</code></td></tr>
+      <tr><td><code>{:?}</code></td><td>Debug: вид для программиста, умеет печатать кортежи и <code>Option</code></td><td><code>(1, 2.5)</code></td></tr>
+      <tr><td><code>{hp}</code></td><td>переменная прямо в строке; работает только для имён, не для выражений</td><td><code>30</code></td></tr>
+      <tr><td><code>{:&gt;6}</code> <code>{:&lt;6}</code> <code>{:^6}</code></td><td>ширина 6, выравнивание вправо, влево, по центру</td><td><code>[    30] [30    ] [  30  ]</code></td></tr>
+      <tr><td><code>{:08b}</code></td><td>двоичная запись, ширина 8, дополнение нулями</td><td><code>00000101</code></td></tr>
+      <tr><td><code>{:#x}</code></td><td>шестнадцатеричная с префиксом</td><td><code>0xff</code></td></tr>
+      <tr><td><code>{:.2}</code></td><td>два знака после точки</td><td><code>3.14</code></td></tr>
+      <tr><td><code>{hp:&gt;5}</code></td><td>имя и формат вместе</td><td><code>   30</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>Размер типа возвращает <code>size_of::&lt;T&gt;()</code>; конструкция <code>::&lt;T&gt;</code> называется turbofish и указывает тип явно. Функция есть в прелюдии, импорт не нужен.</p>
+</section>
+
+<section id="predict">
+  <h2><span class="n">§9</span>Скомпилируется?</h2>
+  <p>Для каждого фрагмента решите: соберётся программа или нет. Если нет — какую ошибку покажет компилятор. Потом нажмите кнопку. Все ответы проверены на Rust 1.100.0.</p>
+  <div class="cards" id="cards"></div>
+</section>
+
+<section id="glossary">
+  <h2><span class="n">§10</span>Глоссарий</h2>
+  <dl class="gloss">
+    <dt>тулчейн<span>toolchain</span></dt><dd>Набор программ одной версии: rustc, cargo, std, clippy, rustfmt.</dd>
+    <dt>канал<span>channel</span></dt><dd>Ветка релизов: stable, beta, nightly.</dd>
+    <dt>редакция<span>edition</span></dt><dd>Набор правил языка (2015/2018/2021/2024), задаётся в Cargo.toml для каждого пакета.</dd>
+    <dt>пакет<span>package</span></dt><dd>Проект с одним Cargo.toml.</dd>
+    <dt>крейт<span>crate</span></dt><dd>Единица компиляции: бинарный (с <code>main</code>) или библиотечный.</dd>
+    <dt>рабочее пространство<span>workspace</span></dt><dd>Несколько пакетов под одним корневым Cargo.toml с общим target/.</dd>
+    <dt>манифест<span>manifest</span></dt><dd>Файл Cargo.toml.</dd>
+    <dt>профиль<span>profile</span></dt><dd>Набор настроек сборки: dev, release, test.</dd>
+    <dt>линт<span>lint</span></dt><dd>Проверка компилятора или clippy с уровнем allow, warn, deny или forbid.</dd>
+    <dt>привязка<span>binding</span></dt><dd>Имя, связанное со значением через <code>let</code>.</dd>
+    <dt>изменяемость<span>mutability</span></dt><dd>Разрешение менять значение привязки (<code>mut</code>).</dd>
+    <dt>затенение<span>shadowing</span></dt><dd>Новая привязка с тем же именем, закрывающая старую.</dd>
+    <dt>вывод типов<span>type inference</span></dt><dd>Определение типа компилятором без аннотации.</dd>
+    <dt>скалярный тип<span>scalar type</span></dt><dd>Тип с одним значением: целое, дробное, bool, char.</dd>
+    <dt>переполнение<span>overflow</span></dt><dd>Результат операции не помещается в тип.</dd>
+    <dt>заворачивание<span>wrapping</span></dt><dd>Результат по модулю 2<sup>n</sup>: 255 + 1 = 0 в u8.</dd>
+    <dt>насыщение<span>saturation</span></dt><dd>Результат упирается в MIN или MAX типа.</dd>
+    <dt>дополнительный код<span>two's complement</span></dt><dd>Способ хранить отрицательные целые: старший бит имеет вес −2<sup>n−1</sup>.</dd>
+    <dt>приведение<span>cast</span></dt><dd>Явное преобразование типа через <code>as</code>.</dd>
+    <dt>паника<span>panic</span></dt><dd>Аварийная остановка потока с сообщением об ошибке.</dd>
+    <dt>скалярное значение Юникода<span>Unicode scalar value</span></dt><dd>Номер символа U+0000–U+D7FF или U+E000–U+10FFFF; именно его хранит <code>char</code>.</dd>
+  </dl>
+</section>
+
+<section id="quiz">
+  <h2><span class="n">§11</span>Самопроверка</h2>
+  <p>Ответьте на все вопросы и нажмите «Проверить». Пояснения появятся под каждым вопросом.</p>
+  <form id="quiz-form"></form>
+  <div><button class="primary" id="quiz-check" type="button">Проверить</button><span class="score" id="quiz-score" aria-live="polite"></span></div>
+</section>
+
+<section id="tasks">
+  <h2><span class="n">§12</span>Задания</h2>
+  <p>Код заданий лежит в репозитории курса, в папке <code>lessons/01-cargo-variables-numbers/</code>. Оба задания пишутся руками, без ИИ-автодополнения. Подсказки беру на себя: их три уровня (направление, понятие, фрагмент кода), каждая стоит −1 балл.</p>
+
+  <div class="task">
+    <h3>Задание 1. Кошелёк, здоровье и тики <span class="pts">10 баллов · с тестами</span></h3>
+    <p>В <code>task1/src/lib.rs</code> восемь функций с телом <code>todo!()</code>. Реализуйте их так, чтобы прошли все тесты из <code>task1/tests/task1.rs</code>:</p>
+<pre data-run="skip"><code>cargo test -p l01-task1</code></pre>
+    <ul>
+      <li><code>add_gold</code>, <code>apply_damage</code>, <code>try_buy</code>, <code>next_tick</code> — каждое переполнение обработать явно, подходящим семейством методов;</li>
+      <li><code>hp_percent</code> — подумайте, поместится ли <code>hp * 100</code> в <code>u16</code>;</li>
+      <li><code>letter_index</code> — работа с <code>char</code> и байт-литералом;</li>
+      <li><code>temperature_delta</code> — почему результат <code>i16</code>, а не <code>i8</code>;</li>
+      <li><code>average_damage</code> — правила IEEE 754 для деления на ноль.</li>
+    </ul>
+    <p>Когда реализуете все функции, удалите первую строку <code>#![allow(unused_variables)]</code>. Сверху моих тестов добавьте хотя бы два своих на граничные случаи: они идут в критерий «тесты».</p>
+  </div>
+
+  <div class="task">
+    <h3>Задание 2. Анатомия чисел <span class="pts">10 баллов · открытое</span></h3>
+    <p>Программа в <code>task2/src/main.rs</code> (запуск: <code>cargo run -p l01-task2</code>) и отчёт <code>task2/REPORT.md</code>.</p>
+    <ol>
+      <li><b>Таблица типов.</b> Программа печатает ровную таблицу для всех 12 целых типов: имя, размер в байтах (через <code>size_of</code>), MIN, MAX. Столбцы выровнены, числа по правому краю.</li>
+      <li><b>Четыре стратегии.</b> Для <code>200u8 + 100</code> и <code>-128i8 - 1</code> программа печатает результаты <code>wrapping</code>, <code>checked</code>, <code>saturating</code>, <code>overflowing</code>. Значения пропустите через <code>black_box</code>.</li>
+      <li><b>debug против release.</b> Добавьте простое <code>+</code> с переполнением, запустите программу в обоих профилях и запишите в отчёт, что произошло и почему. Затем уберите эту строку, чтобы программа завершалась без паники.</li>
+      <li><b>Предсказания.</b> Придумайте 6 своих приведений через <code>as</code> (не из лекции), сначала запишите в отчёт предсказание, потом фактический результат и объяснение для каждого промаха.</li>
+      <li><b>Бестиарий.</b> Специально вызовите минимум три разные ошибки компилятора и запишите их в <code>bestiary.md</code>: код, текст, причина своими словами, исправление.</li>
+    </ol>
+    <p>Критерии: правильность 4 (таблица и стратегии верны, программа завершается без паники), идиоматичность 2 (<code>cargo fmt</code> и <code>cargo clippy</code> без замечаний), граничные случаи 2 (128-битные типы, MIN/MAX, знаковые), отчёт и защита 2.</p>
+  </div>
+
+  <h3>Как сдавать</h3>
+  <ol>
+    <li><code>cargo fmt</code>, <code>cargo clippy --workspace</code>, <code>cargo test -p l01-task1</code> — локально без ошибок.</li>
+    <li>Закоммитьте и запушьте в <code>main</code>. GitHub Actions прогонит формат, сборку, тесты и clippy.</li>
+    <li>Напишите мне «сдаю задания лекции 1». Я смотрю код и результат CI, задаю 1–2 вопроса на защиту и ставлю оценку.</li>
+  </ol>
+  <p>Оценка: правильность 4, идиоматичность 2, тесты и граничные случаи 2, объяснение и защита 2. Зачёт от 7 баллов при правильности не ниже 3. XP = баллы × 5.</p>
+
+  <h3>Практика без оценки</h3>
+  <ul>
+    <li><a href="https://rustlings.rust-lang.org/">Rustlings</a> 6.5: <code>intro1</code>, <code>intro2</code>, <code>variables1</code>–<code>variables6</code>, <code>primitive_types1</code>, <code>2</code>, <code>3</code>, <code>5</code>, <code>6</code>. В <code>primitive_types1</code> встретится <code>if</code>; по смыслу он понятен, подробно — в лекции 2. <code>primitive_types4</code> про срезы оставьте до лекции 5.</li>
+    <li><a href="https://exercism.org/tracks/rust/exercises/assembly-line">Exercism, Assembly Line</a>: целые, дробные и приведения на одном примере.</li>
+  </ul>
+</section>
+
+<section id="sources">
+  <h2><span class="n">§13</span>Источники</h2>
+  <p>Все утверждения лекции сверены с источниками первого уровня, все примеры собраны на Rust 1.100.0 (stable, edition 2024).</p>
+  <ul class="sources">
+    <li><span class="tier">уровень 1</span> The Rust Programming Language: <a href="https://doc.rust-lang.org/book/ch01-00-getting-started.html">гл. 1 «Getting Started»</a>, <a href="https://doc.rust-lang.org/book/ch03-01-variables-and-mutability.html">3.1 «Variables and Mutability»</a>, <a href="https://doc.rust-lang.org/book/ch03-02-data-types.html">3.2 «Data Types»</a>.</li>
+    <li><span class="tier">уровень 1</span> The Cargo Book: <a href="https://doc.rust-lang.org/cargo/reference/profiles.html">Profiles</a>, <a href="https://doc.rust-lang.org/cargo/faq.html">FAQ про Cargo.lock</a>.</li>
+    <li><span class="tier">уровень 1</span> The rustup book: <a href="https://rust-lang.github.io/rustup/concepts/channels.html">Channels</a>; <a href="https://doc.rust-lang.org/edition-guide/">The Edition Guide</a>.</li>
+    <li><span class="tier">уровень 1</span> The Rust Reference: <a href="https://doc.rust-lang.org/reference/types/numeric.html">Numeric types</a>, <a href="https://doc.rust-lang.org/reference/expressions/operator-expr.html">Operator expressions: overflow и type cast</a>, <a href="https://doc.rust-lang.org/reference/tokens.html">Tokens: числовые литералы</a>, <a href="https://doc.rust-lang.org/reference/behavior-not-considered-unsafe.html">Behavior not considered unsafe: integer overflow</a>.</li>
+    <li><span class="tier">уровень 1</span> std: <a href="https://doc.rust-lang.org/std/primitive.u8.html">u8</a> (методы wrapping/checked/saturating/overflowing), <a href="https://doc.rust-lang.org/std/primitive.char.html">char</a>, <a href="https://doc.rust-lang.org/std/convert/trait.From.html">From</a>, <a href="https://doc.rust-lang.org/std/fmt/index.html">std::fmt</a>, <a href="https://doc.rust-lang.org/std/hint/fn.black_box.html">black_box</a>.</li>
+    <li><span class="tier">уровень 1</span> <a href="https://doc.rust-lang.org/error_codes/error-index.html">Индекс ошибок компилятора</a> (E0384, E0381, E0308, E0277, E0600); <a href="https://doc.rust-lang.org/rustc/lints/listing/deny-by-default.html">rustc: линты deny по умолчанию</a>.</li>
+    <li><span class="tier">уровень 1</span> <a href="https://rust-lang.github.io/rfcs/0560-integer-overflow.html">RFC 560: Integer overflow</a> — почему debug паникует, а release заворачивает.</li>
+    <li><span class="tier">уровень 2</span> <a href="https://google.github.io/comprehensive-rust/">Google Comprehensive Rust</a>, разделы «Types and Values»; Blandy, Orendorff, Tindall, «Programming Rust», 2-е изд., гл. 3 «Fundamental Types».</li>
+    <li><span class="tier">практика</span> <a href="https://rustlings.rust-lang.org/">Rustlings</a>, <a href="https://exercism.org/tracks/rust">Exercism Rust</a>.</li>
+  </ul>
+  <p>Упрощения в лекции: таблица профилей показывает только пять настроек из двенадцати; про <code>isize</code>/<code>usize</code> сказано для 64-битных систем; <code>Option</code>, <code>&amp;str</code>, макросы и <code>TryFrom</code> упомянуты без объяснения и разбираются в своих лекциях.</p>
+</section>
+</main>
+</div>
+
+<script>
+(function () {
+  var NS = "http://www.w3.org/2000/svg";
+  function el(name, attrs, text) {
+    var e = document.createElementNS(NS, name);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  var sizes = document.getElementById("sizes");
+  var rows = [["bool", 1], ["u8 / i8", 1], ["u16 / i16", 2], ["char", 4], ["u32 / i32", 4], ["f32", 4], ["u64 / i64", 8], ["f64", 8], ["usize / isize", 8], ["u128 / i128", 16]];
+  rows.forEach(function (r, i) {
+    var y = 10 + i * 31;
+    sizes.appendChild(el("text", { x: 0, y: y + 17, "font-size": 13 }, r[0]));
+    for (var b = 0; b < r[1]; b++) {
+      sizes.appendChild(el("rect", { x: 120 + b * 28, y: y, width: 24, height: 24, rx: 3, "class": (r[0] === "char" || r[0] === "bool" || r[0].charAt(0) === "f") ? "byte-alt" : "byte" }));
+    }
+    sizes.appendChild(el("text", { x: 120 + r[1] * 28 + 6, y: y + 17, "font-size": 12, "class": "muted" }, r[1] + " Б"));
+  });
+
+  var wheel = document.getElementById("wheel");
+  var cx = 200, cy = 200, R = 130;
+  function pt(v, r) { var t = v / 256 * 2 * Math.PI; return [cx + r * Math.sin(t), cy - r * Math.cos(t)]; }
+  wheel.appendChild(el("circle", { cx: cx, cy: cy, r: R, "class": "ring" }));
+  for (var v = 0; v < 256; v += 16) {
+    var a = pt(v, R - 7), b = pt(v, R + 7);
+    wheel.appendChild(el("line", { x1: a[0], y1: a[1], x2: b[0], y2: b[1], "class": "tick" }));
+  }
+  function arc(v1, v2) {
+    var a = pt(v1, R), b = pt(v2, R);
+    return "M" + a[0].toFixed(1) + " " + a[1].toFixed(1) + " A" + R + " " + R + " 0 0 1 " + b[0].toFixed(1) + " " + b[1].toFixed(1);
+  }
+  wheel.appendChild(el("path", { d: arc(251, 261), "class": "seam" }));
+  wheel.appendChild(el("path", { d: arc(123, 133), "class": "seam" }));
+  [[0, "0"], [32, "32"], [64, "64"], [96, "96"], [128, "128"], [160, "160"], [192, "192"], [224, "224"], [248, "255"]].forEach(function (p) {
+    var q = pt(p[0], R + 26);
+    wheel.appendChild(el("text", { x: q[0], y: q[1] + 4, "text-anchor": "middle", "font-size": 13 }, p[1]));
+  });
+  [[0, "0"], [32, "32"], [64, "64"], [96, "96"], [128, "−128"], [160, "−96"], [192, "−64"], [224, "−32"], [248, "−1"]].forEach(function (p) {
+    var q = pt(p[0], R - 30);
+    wheel.appendChild(el("text", { x: q[0], y: q[1] + 4, "text-anchor": "middle", "font-size": 12, "class": "muted" }, p[1]));
+  });
+  wheel.appendChild(el("text", { x: cx, y: cy - 6, "text-anchor": "middle", "font-size": 13 }, "снаружи u8"));
+  wheel.appendChild(el("text", { x: cx, y: cy + 14, "text-anchor": "middle", "font-size": 13, "class": "muted" }, "внутри i8"));
+
+  var LIM = { u8: [0, 255], i8: [-128, 127], u16: [0, 65535], i16: [-32768, 32767] };
+  var OPS = { add: ["+", "add"], sub: ["-", "subtract"], mul: ["*", "multiply"] };
+  function lab() {
+    var t = document.getElementById("lab-type").value;
+    var op = document.getElementById("lab-op").value;
+    var lo = LIM[t][0], hi = LIM[t][1], span = hi - lo + 1;
+    var a = Math.trunc(Number(document.getElementById("lab-a").value));
+    var b = Math.trunc(Number(document.getElementById("lab-b").value));
+    var out = document.getElementById("lab-out"), exact = document.getElementById("lab-exact");
+    out.textContent = "";
+    function cell(k, v, cls) {
+      var d = document.createElement("div");
+      var ks = document.createElement("span"); ks.className = "k"; ks.textContent = k;
+      var vs = document.createElement("span"); vs.className = "v" + (cls ? " " + cls : ""); vs.textContent = v;
+      d.appendChild(ks); d.appendChild(vs); out.appendChild(d);
+    }
+    if (!isFinite(a) || !isFinite(b) || a < lo || a > hi || b < lo || b > hi) {
+      exact.textContent = "a и b должны быть в диапазоне " + t + ": от " + lo + " до " + hi + ". Иначе это ошибка компиляции overflowing_literals.";
+      return;
+    }
+    var r = op === "add" ? a + b : op === "sub" ? a - b : a * b;
+    var wrapped = ((r - lo) % span + span) % span + lo;
+    var fits = r >= lo && r <= hi;
+    var sat = Math.min(hi, Math.max(lo, r));
+    cell("a " + OPS[op][0] + " b, cargo run (dev)", fits ? String(r) : "паника: attempt to " + OPS[op][1] + " with overflow", fits ? "good" : "bad");
+    cell("a " + OPS[op][0] + " b, --release", String(wrapped), fits ? "good" : "bad");
+    cell("wrapping_" + op, String(wrapped));
+    cell("checked_" + op, fits ? "Some(" + r + ")" : "None", fits ? "" : "bad");
+    cell("saturating_" + op, String(sat));
+    cell("overflowing_" + op, "(" + wrapped + ", " + (!fits) + ")");
+    exact.textContent = "Точный результат в математике: " + r + (fits ? ", помещается в " + t + "." : ", не помещается в " + t + " (" + lo + "…" + hi + ").");
+  }
+  ["lab-type", "lab-op", "lab-a", "lab-b"].forEach(function (id) {
+    document.getElementById(id).addEventListener("input", lab);
+    document.getElementById(id).addEventListener("change", lab);
+  });
+  lab();
+
+  var CARDS = [
+    { code: 'fn main() {\n    let spaces = "   ";\n    let spaces = spaces.len();\n    println!("{spaces}");\n}', ok: true,
+      why: "Затенение создаёт новую переменную, поэтому тип может смениться с &str на usize. Печатает 3." },
+    { code: 'fn main() {\n    let mut spaces = "   ";\n    spaces = spaces.len();\n    println!("{spaces}");\n}', ok: false,
+      why: "mut разрешает менять значение, но не тип. Переменная имеет тип &str, а len() возвращает usize.",
+      msg: "error[E0308]: mismatched types\n  expected `&str`, found `usize`" },
+    { code: 'const MAX_HP = 100;\n\nfn main() {\n    println!("{MAX_HP}");\n}', ok: false,
+      why: "У констант тип не выводится, его надо указать: const MAX_HP: u32 = 100;",
+      msg: "error: missing type for `const` item\n  help: provide a type for the constant: `: i32`" },
+    { code: 'fn main() {\n    let level: u8 = 256;\n    println!("{level}");\n}', ok: false,
+      why: "256 не помещается в u8 (0..=255). Это линт overflowing_literals, он на уровне deny, поэтому кода E… нет.",
+      msg: "error: literal out of range for `u8`" },
+    { code: 'fn main() {\n    let x: u8 = 255;\n    let y = x + 1;\n    println!("{y}");\n}', ok: false,
+      why: "Компилятор видит значение x и сам вычисляет переполнение. Линт arithmetic_overflow, уровень deny.",
+      msg: "error: this arithmetic operation will overflow\n  attempt to compute `u8::MAX + 1_u8`, which would overflow" },
+    { code: 'fn main() {\n    let a: i32 = 5;\n    let b: i64 = 10;\n    let c = a + b;\n    println!("{c}");\n}', ok: false,
+      why: "Неявного расширения нет. Нужно привести явно: i64::from(a) + b.",
+      msg: "error[E0308]: mismatched types\n  expected `i32`, found `i64`\nerror[E0277]: cannot add `i64` to `i32`" },
+    { code: "fn main() {\n    let c = 'я' as u8;\n    println!(\"{c}\");\n}", ok: true,
+      why: "Компилируется: as никогда не отказывает. 'я' имеет номер 1103 = 0x44F, от него остаётся младший байт 0x4F = 79. Классическая тихая ошибка." },
+    { code: 'fn main() {\n    let a = [1, 2, 3];\n    println!("{}", a[5]);\n}', ok: false,
+      why: "Длина массива и индекс известны при компиляции, поэтому линт unconditional_panic останавливает сборку.",
+      msg: "error: this operation will panic at runtime\n  index out of bounds: the length is 3 but the index is 5" },
+    { code: "fn main() {\n    let a: u32 = -1;\n    println!(\"{a}\");\n}", ok: false,
+      why: "Унарный минус для беззнаковых типов не определён. Компилятор подсказывает: может быть, вы имели в виду u32::MAX.",
+      msg: "error[E0600]: cannot apply unary operator `-` to type `u32`" },
+    { code: 'fn main() {\n    let x = 2.0 * 3;\n    println!("{x}");\n}', ok: false,
+      why: "Дробное и целое не смешиваются даже в литералах. Пишите 2.0 * 3.0.",
+      msg: "error[E0277]: cannot multiply `{float}` by `{integer}`" },
+    { code: 'fn main() {\n    let gold: u32;\n    println!("{gold}");\n}', ok: false,
+      why: "Объявить без значения можно, читать до присваивания нельзя.",
+      msg: "error[E0381]: used binding `gold` isn't initialized" },
+    { code: "fn main() {\n    let x = 5;\n}", ok: true,
+      why: "Собирается, но с предупреждением unused_variables. Если переменная не нужна намеренно, назовите её _x." }
+  ];
+  var cards = document.getElementById("cards");
+  CARDS.forEach(function (c, i) {
+    var card = document.createElement("div"); card.className = "card";
+    var head = document.createElement("div"); head.className = "card-head";
+    var num = document.createElement("span"); num.textContent = "фрагмент " + (i + 1) + " из " + CARDS.length;
+    head.appendChild(num); card.appendChild(head);
+    var pre = document.createElement("pre"); pre.setAttribute("data-run", c.ok ? "ok" : "err");
+    var code = document.createElement("code"); code.textContent = c.code; pre.appendChild(code); card.appendChild(pre);
+    var btns = document.createElement("div"); btns.className = "btns";
+    var verdict = document.createElement("div"); verdict.className = "verdict"; verdict.setAttribute("aria-live", "polite");
+    [["Скомпилируется", true], ["Ошибка компиляции", false]].forEach(function (o) {
+      var bt = document.createElement("button"); bt.type = "button"; bt.textContent = o[0];
+      bt.addEventListener("click", function () {
+        verdict.textContent = "";
+        var res = document.createElement("div");
+        var mark = document.createElement("span"); mark.className = "res " + (o[1] === c.ok ? "right" : "wrong");
+        mark.textContent = o[1] === c.ok ? "Верно. " : "Мимо. ";
+        res.appendChild(mark);
+        res.appendChild(document.createTextNode((c.ok ? "Компилируется. " : "Не компилируется. ") + c.why));
+        verdict.appendChild(res);
+        if (c.msg) { var p = document.createElement("pre"); p.textContent = c.msg; verdict.appendChild(p); }
+      });
+      btns.appendChild(bt);
+    });
+    card.appendChild(btns); card.appendChild(verdict); cards.appendChild(card);
+  });
+
+  var QUIZ = [
+    { q: "Какая команда быстрее всех проверит, что проект компилируется?", a: ["cargo check", "cargo build", "cargo run", "cargo test"], r: 0,
+      why: "cargo check выполняет все проверки компилятора, но не генерирует машинный код." },
+    { q: "x: u8 = black_box(255). Что даст x + 1 в cargo run --release с настройками по умолчанию?", a: ["0", "паника", "256", "неопределённое поведение"], r: 0,
+      why: "В release overflow-checks выключены, результат заворачивается. Это определённое поведение." },
+    { q: "Какой тип получит литерал 42, если других подсказок нет?", a: ["i32", "i64", "usize", "u32"], r: 0,
+      why: "Целые литералы по умолчанию i32, дробные f64." },
+    { q: "Сколько байт занимает char?", a: ["4", "1", "2", "зависит от символа"], r: 0,
+      why: "char хранит любое скалярное значение Юникода, для этого нужно 4 байта. Зависит от символа длина в UTF-8, но это про строки." },
+    { q: "Чему равно -7 / 2 в Rust?", a: ["-3", "-4", "-3.5", "ошибка компиляции"], r: 0,
+      why: "Целочисленное деление округляет к нулю." },
+    { q: "Чем затенение отличается от mut?", a: ["Можно сменить тип", "Работает быстрее", "Делает переменную глобальной", "Ничем"], r: 0,
+      why: "Затенение создаёт новую переменную, у неё может быть другой тип." },
+    { q: "Что вернёт 200u8.checked_add(100)?", a: ["None", "Some(44)", "Some(255)", "паника"], r: 0,
+      why: "300 не помещается в u8, checked сообщает об этом через None." },
+    { q: "Чему равно -1_i32 as u8?", a: ["255", "0", "1", "ошибка компиляции"], r: 0,
+      why: "У -1 в дополнительном коде все биты единичные, младший байт 1111 1111 = 255." },
+    { q: "Как расширить hp: u16 до u32 без as?", a: ["u32::from(hp)", "hp.to_u32()", "u32(hp)", "(u32)hp"], r: 0,
+      why: "From реализован для всех преобразований без потерь. Метода to_u32 у u16 нет, остальное — синтаксис других языков." },
+    { q: "Почему у ошибки «literal out of range for `u8`» нет кода E…?", a: ["Это линт уровня deny", "Это предупреждение", "Это ошибка времени выполнения", "Это баг компилятора"], r: 0,
+      why: "Линты имеют настраиваемый уровень; overflowing_literals по умолчанию deny." },
+    { q: "Что будет при целочисленном делении на ноль в release?", a: ["Паника", "inf", "0", "Неопределённое поведение"], r: 0,
+      why: "Деление на ноль паникует в любом профиле. inf бывает только у дробных." },
+    { q: "Где окажется exe после cargo build --release?", a: ["target/release/", "target/debug/", "bin/Release/", "рядом с Cargo.toml"], r: 0,
+      why: "Профиль release складывает результат в target/release/." }
+  ];
+  var order = [[1, 0, 2, 3], [2, 1, 0, 3], [3, 0, 1, 2], [0, 3, 2, 1], [1, 2, 3, 0], [2, 0, 3, 1], [0, 1, 3, 2], [3, 2, 0, 1], [1, 3, 0, 2], [2, 3, 1, 0], [0, 2, 1, 3], [3, 1, 2, 0]];
+  var form = document.getElementById("quiz-form");
+  QUIZ.forEach(function (item, i) {
+    var box = document.createElement("div"); box.className = "quiz-q"; box.id = "q" + i;
+    var fs = document.createElement("fieldset");
+    var lg = document.createElement("legend"); lg.textContent = (i + 1) + ". " + item.q; fs.appendChild(lg);
+    order[i].forEach(function (k) {
+      var lb = document.createElement("label");
+      var inp = document.createElement("input"); inp.type = "radio"; inp.name = "q" + i; inp.value = k; inp.id = "q" + i + "a" + k;
+      lb.appendChild(inp); lb.appendChild(document.createTextNode(item.a[k])); fs.appendChild(lb);
+    });
+    var why = document.createElement("div"); why.className = "why"; why.hidden = true; why.textContent = item.why;
+    fs.appendChild(why); box.appendChild(fs); form.appendChild(box);
+  });
+  document.getElementById("quiz-check").addEventListener("click", function () {
+    var score = 0, answered = 0;
+    QUIZ.forEach(function (item, i) {
+      var sel = form.querySelector('input[name="q' + i + '"]:checked');
+      var box = document.getElementById("q" + i);
+      box.classList.remove("right", "wrong");
+      if (!sel) return;
+      answered++;
+      var ok = Number(sel.value) === item.r;
+      if (ok) score++;
+      box.classList.add(ok ? "right" : "wrong");
+      box.querySelector(".why").hidden = false;
+    });
+    document.getElementById("quiz-score").textContent = "Верно " + score + " из " + QUIZ.length + (answered < QUIZ.length ? " (без ответа: " + (QUIZ.length - answered) + ")" : "");
+  });
+})();
+</script>
